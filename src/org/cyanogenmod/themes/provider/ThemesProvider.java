@@ -16,9 +16,7 @@
 package org.cyanogenmod.themes.provider;
 
 
-import android.Manifest;
 import android.content.ContentProvider;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -179,15 +177,6 @@ public class ThemesProvider extends ContentProvider {
                         hasBootAni != null && hasBootAni);
                 getContext().startService(intent);
             }
-
-            if (id != -1) {
-                uri = ContentUris.withAppendedId(uri, id);
-                String pkgName = values.getAsString(ThemesColumns.PKG_NAME);
-                Intent intent = new Intent(ThemesContract.Intents.ACTION_THEME_ADDED,
-                        Uri.fromParts("package", pkgName, null));
-                getContext().sendBroadcast(intent, Manifest.permission.READ_THEMES);
-            }
-
             break;
         case MIXNMATCH:
             throw new UnsupportedOperationException("Cannot insert rows into MixNMatch table");
