@@ -26,21 +26,22 @@ import android.content.SharedPreferences.Editor;
 import android.content.UriMatcher;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.pm.ThemeUtils;
-import android.content.res.ThemeChangeRequest;
-import android.content.res.ThemeChangeRequest.RequestType;
-import android.content.res.ThemeManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.provider.ThemesContract;
-import android.provider.ThemesContract.MixnMatchColumns;
-import android.provider.ThemesContract.PreviewColumns;
-import android.provider.ThemesContract.ThemesColumns;
 import android.util.Log;
+
+import cm.theme.internal.util.ThemeUtils;
+import cm.theme.providers.ThemesContract;
+import cm.theme.providers.ThemesContract.MixnMatchColumns;
+import cm.theme.providers.ThemesContract.PreviewColumns;
+import cm.theme.providers.ThemesContract.ThemesColumns;
+import cm.theme.ThemeManager;
+import cm.theme.ThemeChangeRequest;
+import cm.theme.ThemeChangeRequest.RequestType;
 
 import org.cyanogenmod.themes.provider.ThemesOpenHelper.MixnMatchTable;
 import org.cyanogenmod.themes.provider.ThemesOpenHelper.PreviewsTable;
@@ -589,8 +590,7 @@ public class ThemesProvider extends ContentProvider {
             builder.setRequestType(RequestType.THEME_REMOVED);
             ThemeChangeRequest request = builder.build();
             if (request.getNumChangesRequested() > 0) {
-                ThemeManager mService = (ThemeManager) getContext().getSystemService(
-                        Context.THEME_SERVICE);
+                ThemeManager mService = ThemeManager.getInstance();
                 mService.requestThemeChange(request, false);
             }
 

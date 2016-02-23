@@ -20,18 +20,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ThemeUtils;
 import android.content.res.ThemeConfig;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Build;
-import android.provider.ThemesContract;
-import android.provider.ThemesContract.ThemesColumns;
-import android.provider.ThemesContract.MixnMatchColumns;
-import android.provider.ThemesContract.PreviewColumns;
 import android.util.Log;
+
+import cm.theme.internal.util.ThemeUtils;
+import cm.theme.providers.ThemesContract;
+import cm.theme.providers.ThemesContract.ThemesColumns;
+import cm.theme.providers.ThemesContract.MixnMatchColumns;
+import cm.theme.providers.ThemesContract.PreviewColumns;
 
 public class ThemesOpenHelper extends SQLiteOpenHelper {
     private static final String TAG = ThemesOpenHelper.class.getName();
@@ -589,5 +590,3 @@ public class ThemesOpenHelper extends SQLiteOpenHelper {
         return ThemeConfig.SYSTEM_DEFAULT == ThemeUtils.getDefaultThemePackageName(context);
     }
 }
-
-
