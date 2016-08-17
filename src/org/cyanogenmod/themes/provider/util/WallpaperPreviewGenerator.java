@@ -66,7 +66,6 @@ public class WallpaperPreviewGenerator {
             item = createWallpaperItems(0, baseDir, null, pkgName, preview, false);
             if (item != null) {
                 items.wallpapers.add(item);
-                items.lockscreen = item;
             }
         } else {
             final Context themeContext = mContext.createPackageContext(themeInfo.packageName, 0);
@@ -121,7 +120,7 @@ public class WallpaperPreviewGenerator {
             Bitmap thumbnail = Bitmap.createScaledBitmap(preview, mThumbnailSize, mThumbnailSize,
                     true);
             filePrefix = isLockWallpaper ? PreviewColumns.LOCK_WALLPAPER_THUMBNAIL :
-                    PreviewColumns.LOCK_WALLPAPER_THUMBNAIL;
+                    PreviewColumns.WALLPAPER_THUMBNAIL;
             fileName = filePrefix + componentID;
             item.thumbnailPath = PreviewUtils.compressAndSavePng(thumbnail, baseDir, pkgName,
                     fileName);

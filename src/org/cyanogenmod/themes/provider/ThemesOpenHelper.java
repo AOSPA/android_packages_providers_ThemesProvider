@@ -37,7 +37,7 @@ import cm.theme.providers.ThemesContract.PreviewColumns;
 public class ThemesOpenHelper extends SQLiteOpenHelper {
     private static final String TAG = ThemesOpenHelper.class.getName();
 
-    private static final int DATABASE_VERSION = 17;
+    private static final int DATABASE_VERSION = 20;
     private static final String DATABASE_NAME = "themes.db";
     private static final String SYSTEM_THEME_PKG_NAME = ThemeConfig.SYSTEM_DEFAULT;
     private static final String OLD_SYSTEM_THEME_PKG_NAME = "holo";
@@ -124,6 +124,18 @@ public class ThemesOpenHelper extends SQLiteOpenHelper {
             if (oldVersion == 16) {
                 upgradeToVersion17(db);
                 oldVersion = 17;
+            }
+            if (oldVersion == 17) {
+                upgradeToVersion18(db);
+                oldVersion = 18;
+            }
+            if (oldVersion == 18) {
+                upgradeToVersion19(db);
+                oldVersion = 19;
+            }
+            if (oldVersion == 19) {
+                upgradeToVersion20(db);
+                oldVersion = 20;
             }
             if (oldVersion != DATABASE_VERSION) {
                 Log.e(TAG, "Recreating db because unknown database version: " + oldVersion);
@@ -441,6 +453,49 @@ public class ThemesOpenHelper extends SQLiteOpenHelper {
         db.execSQL(sql);
     }
 
+    private void upgradeToVersion18(SQLiteDatabase db) {
+        // add install_state column to themes db
+        String sql = String.format("ALTER TABLE %s ADD COLUMN %s INTEGER DEFAULT 0",
+                ThemesTable.TABLE_NAME, ThemesColumns.MODIFIES_LIVE_LOCK_SCREEN);
+        db.execSQL(sql);
+
+        // add entry to mixnmatch table
+        ContentValues values = new ContentValues();
+        values.put(MixnMatchColumns.COL_VALUE, "");
+        values.put(MixnMatchColumns.COL_PREV_VALUE, "");
+        values.put(MixnMatchColumns.COL_UPDATE_TIME, 0);
+        values.put(MixnMatchColumns.COL_KEY, MixnMatchColumns.KEY_LIVE_LOCK_SCREEN);
+        db.insert(MixnMatchTable.TABLE_NAME, null, values);
+    }
+
+    // Update any themes that have live lock screen
+    private void upgradeToVersion19(SQLiteDatabase db) {
+        // we need to update any existing themes
+        final String[] projection = { ThemesColumns.PKG_NAME };
+        final String selection = ThemesColumns.MODIFIES_LIVE_LOCK_SCREEN + "=?";
+        final String[] selectionArgs = { "1" };
+
+        final Cursor c = db.query(ThemesTable.TABLE_NAME, projection, selection, selectionArgs,
+                null, null, null);
+        if (c != null) {
+            while(c.moveToNext()) {
+                Intent intent = new Intent(mContext, PreviewGenerationService.class);
+                intent.setAction(PreviewGenerationService.ACTION_INSERT);
+                intent.putExtra(PreviewGenerationService.EXTRA_PKG_NAME, c.getString(0));
+                mContext.startService(intent);
+            }
+            c.close();
+        }
+    }
+
+    private void upgradeToVersion20(SQLiteDatabase db) {
+        //No default lock screen nor live lock screen for system theme
+        db.execSQL(String.format("UPDATE %s SET %s='0', %s='0' WHERE %s='%s'",
+                ThemesTable.TABLE_NAME, ThemesColumns.MODIFIES_LOCKSCREEN,
+                ThemesColumns.MODIFIES_LIVE_LOCK_SCREEN, ThemesColumns.PKG_NAME,
+                SYSTEM_THEME_PKG_NAME));
+    }
+
     private void dropTables(SQLiteDatabase db) {
         db.execSQL("DROP TABLE IF EXISTS " + ThemesTable.TABLE_NAME);
         db.execSQL("DROP TABLE IF EXISTS " + MixnMatchTable.TABLE_NAME);
@@ -478,6 +533,7 @@ public class ThemesOpenHelper extends SQLiteOpenHelper {
                         ThemesColumns.MODIFIES_OVERLAYS + " INTEGER DEFAULT 0, " +
                         ThemesColumns.MODIFIES_STATUS_BAR + " INTEGER DEFAULT 0, " +
                         ThemesColumns.MODIFIES_NAVIGATION_BAR + " INTEGER DEFAULT 0, " +
+                        ThemesColumns.MODIFIES_LIVE_LOCK_SCREEN + " INTEGER DEFAULT 0, " +
                         ThemesColumns.PRESENT_AS_THEME + " INTEGER DEFAULT 0, " +
                         ThemesColumns.IS_LEGACY_THEME + " INTEGER DEFAULT 0, " +
                         ThemesColumns.IS_DEFAULT_THEME + " INTEGER DEFAULT 0, " +
@@ -502,7 +558,6 @@ public class ThemesOpenHelper extends SQLiteOpenHelper {
             values.put(ThemesColumns.MODIFIES_FONTS, 1);
             values.put(ThemesColumns.MODIFIES_ICONS, 1);
             values.put(ThemesColumns.MODIFIES_LAUNCHER, 1);
-            values.put(ThemesColumns.MODIFIES_LOCKSCREEN, 1);
             values.put(ThemesColumns.MODIFIES_NOTIFICATIONS, 1);
             values.put(ThemesColumns.MODIFIES_RINGTONES, 1);
             values.put(ThemesColumns.MODIFIES_STATUS_BAR, 1);
@@ -532,9 +587,16 @@ public class ThemesOpenHelper extends SQLiteOpenHelper {
         public static void insertDefaults(SQLiteDatabase db) {
             ContentValues values = new ContentValues();
             long updateTime = System.currentTimeMillis();
-            values.put(MixnMatchColumns.COL_VALUE, SYSTEM_THEME_PKG_NAME);
-            values.put(MixnMatchColumns.COL_UPDATE_TIME, updateTime);
             for(String key : MixnMatchColumns.ROWS) {
+                if (key.equals(MixnMatchColumns.KEY_LOCKSCREEN) ||
+                        key.equals(MixnMatchColumns.KEY_LIVE_LOCK_SCREEN)) {
+                    //No system default for lock wallpaper or live lock screen
+                    values.put(MixnMatchColumns.COL_VALUE, "");
+                    values.put(MixnMatchColumns.COL_UPDATE_TIME, 0);
+                } else {
+                    values.put(MixnMatchColumns.COL_VALUE, SYSTEM_THEME_PKG_NAME);
+                    values.put(MixnMatchColumns.COL_UPDATE_TIME, updateTime);
+                }
                 values.put(MixnMatchColumns.COL_KEY, key);
                 db.insert(TABLE_NAME, null, values);
             }
