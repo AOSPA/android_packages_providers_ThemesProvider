@@ -35,8 +35,6 @@ import cm.theme.providers.ThemesContract.PreviewColumns;
 import org.cyanogenmod.themes.provider.util.BootAnimationPreviewGenerator;
 import org.cyanogenmod.themes.provider.util.IconPreviewGenerator;
 import org.cyanogenmod.themes.provider.util.IconPreviewGenerator.IconItems;
-import org.cyanogenmod.themes.provider.util.LiveLockScreenPreviewGenerator;
-import org.cyanogenmod.themes.provider.util.LiveLockScreenPreviewGenerator.LiveLockScreenItems;
 import org.cyanogenmod.themes.provider.util.PreviewUtils;
 import org.cyanogenmod.themes.provider.util.StylePreviewGenerator;
 import org.cyanogenmod.themes.provider.util.StylePreviewGenerator.StyleItems;
@@ -78,7 +76,6 @@ public class PreviewGenerationService extends IntentService {
         boolean hasWallpaper = false;
         boolean hasStyles = false;
         boolean hasBootanimation = false;
-        boolean hasLiveLockScreen = false;
         boolean isSystemTheme = ThemeConfig.SYSTEM_DEFAULT.equals(pkgName);
         Cursor c = queryTheme(this, pkgName);
         if (c != null) {
@@ -93,8 +90,6 @@ public class PreviewGenerationService extends IntentService {
                 hasStyles = c.getInt(c.getColumnIndex(ThemesColumns.MODIFIES_OVERLAYS)) == 1;
                 hasBootanimation =
                         c.getInt(c.getColumnIndex(ThemesColumns.MODIFIES_BOOT_ANIM)) == 1;
-                hasLiveLockScreen =
-                        c.getInt(c.getColumnIndex(ThemesColumns.MODIFIES_LIVE_LOCK_SCREEN)) == 1;
             }
             c.close();
         }
@@ -159,25 +154,14 @@ public class PreviewGenerationService extends IntentService {
                         Log.e(TAG, "Unable to create boot animation preview for " + pkgName, e);
                     }
                 }
-
-                LiveLockScreenItems liveLockScreenItems = null;
-                if (hasLiveLockScreen) {
-                    try {
-                        liveLockScreenItems = new LiveLockScreenPreviewGenerator(this)
-                                .generateLiveLockScreenPreview(pkgName);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Unable to create live lock screen preview for " + pkgName, e);
-                    }
-                }
                 insertPreviewItemsIntoDb(pkgName, items, iconItems, wallpaperItems, styleItems,
-                        liveLockScreenItems, bootAnim);
+                        bootAnim);
             }
         }
     }
 
     private void insertPreviewItemsIntoDb(String pkgName, SystemUiItems items, IconItems icons,
-            WallpaperItems wallpaperItems, StyleItems styleItems,
-            LiveLockScreenItems liveLockScreenItems, Bitmap bootAnim) {
+            WallpaperItems wallpaperItems, StyleItems styleItems, Bitmap bootAnim) {
         String[] projection = {ThemesColumns._ID};
         String selection = ThemesColumns.PKG_NAME + "=?";
         String[] selectionArgs = { pkgName };
@@ -334,19 +318,6 @@ public class PreviewGenerationService extends IntentService {
                 path = PreviewUtils.compressAndSavePng(styleItems.preview, filesDir, pkgName,
                         PreviewColumns.STYLE_PREVIEW);
                 values = createPreviewEntryString(id, PreviewColumns.STYLE_PREVIEW, path);
-                themeValues.add(values);
-            }
-            if (liveLockScreenItems != null) {
-                path = PreviewUtils.compressAndSaveJpg(liveLockScreenItems.thumbnail, filesDir,
-                        pkgName, PreviewColumns.LIVE_LOCK_SCREEN_THUMBNAIL);
-                values = createPreviewEntryString(id, PreviewColumns.LIVE_LOCK_SCREEN_THUMBNAIL,
-                        path);
-                themeValues.add(values);
-
-                path = PreviewUtils.compressAndSaveJpg(liveLockScreenItems.preview, filesDir,
-                        pkgName, PreviewColumns.LIVE_LOCK_SCREEN_PREVIEW);
-                values = createPreviewEntryString(id, PreviewColumns.LIVE_LOCK_SCREEN_PREVIEW,
-                        path);
                 themeValues.add(values);
             }
             if (bootAnim != null) {
